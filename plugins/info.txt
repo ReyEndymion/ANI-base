@@ -8,10 +8,10 @@ el objeto puede ser {} con propiedades como conn, userdb, etc
 
 nota: vease las propiedades asignadas (parametros) en el archivo handler.js para plugins de clase all, de clase before o de clase handler (nota: deje nombrados los parametros como params, paramsBefore y paramsHandler para mejor Comprensión)
 
-la base de datos se puede llamas desde conn:
-conn.db.data
+la base de datos se puede llamar desde conn:
+conn.db.data o desde los parametros con db
 
-tambien se puede obtener algunas propiedades directas de la base de datos como chats, chat, users y user como chatsdb, chatdb, usersdb, userdb respectivamente desde los parametros de la function deseada (handler, before y all) y solo las funciones handler deben retornar con export default handler
+tambien se puede obtener algunas propiedades directas de la base de datos como chats, chat, users y user como chatsdb, chatdb, usersdb, userdb respectivamente desde los parametros de la function deseada (handler, before y all) y 
 
 dicho lo anterior las funciones handler pueden ser:
 
@@ -26,4 +26,8 @@ handler.before = async function before(m, {parametros})
 
 ademas de que handler.command es la propiedad anidada que necesita para manejar los comandos
 
+solo las funciones handler deben retornar con export default handler sin importar si vienen con before
+
 el resto del codigo lo dejo a su imaginacion
+
+ajustes y señalamientos de errores se iran Corrigiendo
