@@ -1,0 +1,29 @@
+Daré instrucciones de cómo debe implementarse Esta base Para Crear plugins
+
+global Desaparece y en su lugar conn debe ser declarado en cada plugin dentro de un objeto:
+
+const handler = async function handler(m, objeto)
+
+el objeto puede ser {} con propiedades como conn, userdb, etc
+
+nota: vease las propiedades asignadas (parametros) en el archivo handler.js para plugins de clase all, de clase before o de clase handler (nota: deje nombrados los parametros como params, paramsBefore y paramsHandler para mejor Comprensión)
+
+la base de datos se puede llamas desde conn:
+conn.db.data
+
+tambien se puede obtener algunas propiedades directas de la base de datos como chats, chat, users y user como chatsdb, chatdb, usersdb, userdb respectivamente desde los parametros de la function deseada (handler, before y all) y solo las funciones handler deben retornar con export default handler
+
+dicho lo anterior las funciones handler pueden ser:
+
+const handler = async function handler(m, {parametros}) {}
+let handler = async function handler(m, {parametros}) {}
+const handler = async handler(m, {parametros}) => {}
+async function handler(m, {parametros}) {}
+
+ademas puede hacer funciones before dentro de los handler anidando a la function:
+
+handler.before = async function before(m, {parametros})
+
+ademas de que handler.command es la propiedad anidada que necesita para manejar los comandos
+
+el resto del codigo lo dejo a su imaginacion
