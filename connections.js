@@ -160,7 +160,7 @@ console.error('ReloadHError: ', error)
 }
 
 export async function templateResponse(m, {chatUpdate}) {
-const { proto, generateWAMessage, areJidsSameUser, decryptPollVote, } = (await import('@whiskeysockets/baileys'));
+const { proto, generateWAMessage, areJidsSameUser, decryptPollVote, } = (await import('baileys'));
 const { prefix, opts, plugins } = await import('../lib/functions.js');
 if (m.isBaileys) {
 return
