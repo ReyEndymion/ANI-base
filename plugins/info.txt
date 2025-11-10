@@ -31,3 +31,5 @@ solo las funciones handler deben retornar con export default handler sin importa
 el resto del codigo lo dejo a su imaginacion
 
 ajustes y señalamientos de errores se iran Corrigiendo
+
+//se añadio soporte para sendButton, aclaro no sirve para cuentas Bussines, solo para whatsapp normal... deben checar el uso de esa funcion helper añadida a conn en la linea 730 del simple para saber la disposicion de los parametros que soporta
