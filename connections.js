@@ -159,12 +159,9 @@ console.error('ReloadHError: ', error)
 }
 }
 
-export async function templateResponse(m, {chatUpdate}) {
+export async function templateResponse(m, {chatUpdate, conn}) {
 const { proto, generateWAMessage, areJidsSameUser, decryptPollVote, } = (await import('baileys'));
-const { prefix, opts, plugins } = await import('../lib/functions.js');
-if (m.isBaileys) {
-return
-}
+const { prefix, opts, plugins } = conn;
 if (!m.message) {
 return
 }
@@ -184,7 +181,9 @@ id = JSON.parse(m.message.interactiveResponseMessage.nativeFlowResponseMessage.p
 const text = m.message.buttonsResponseMessage?.selectedDisplayText || m.message.templateButtonReplyMessage?.selectedDisplayText || m.message.listResponseMessage?.title || m.message.interactiveResponseMessage.body?.text
 let isIdMessage = false
 let usedPrefix
-for (const [link, plugin] of plugins.entries()) {
+for (let name in plugins) {
+const plugin = plugins[name]
+console.log('templateResponseCheck', plugin )
 if (!plugin) {
 continue
 }
@@ -202,7 +201,7 @@ if (!plugin.command) {
 continue
 }
 const str2Regex = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')
-const _prefix = plugin.customPrefix ? plugin.customPrefix : this.prefix ? this.prefix : prefix
+const _prefix = plugin.customPrefix ? plugin.customPrefix : conn.prefix ? conn.prefix : prefix
 const match = (_prefix instanceof RegExp ? [[_prefix.exec(id), _prefix]] : Array.isArray(_prefix) ? _prefix.map((p) => {
 const re = p instanceof RegExp ? p : new RegExp(str2Regex(p));
 return [re.exec(id), re]
@@ -232,10 +231,10 @@ continue
 isIdMessage = true
 }}
 const messages = await generateWAMessage(m.chat, {text: isIdMessage ? id : text, mentions: m.mentionedJid}, {
-userJid: this.user.id,
+userJid: conn.user.id,
 quoted: m.quoted && m.quoted?.fakeObj,
 })
-messages.key.fromMe = areJidsSameUser(m.sender, this.user.id)
+messages.key.fromMe = areJidsSameUser(m.sender, conn.user.id)
 messages.key.id = m.key.id
 messages.pushName = m.name
 if (m.isGroup) {
@@ -252,5 +251,5 @@ const msg = {
 messages: [proto.WebMessageInfo.create(messages)],
 type: 'append',
 }
-this.ev.emit('messages.upsert', msg)
+conn.ev.emit('messages.upsert', msg)
 }
