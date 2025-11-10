@@ -253,3 +253,11 @@ type: 'append',
 }
 conn.ev.emit('messages.upsert', msg)
 }
+
+export async function patchMessageBeforeSending(message) {
+const requiresPatch = !!( message.buttonsMessage || message.templateMessage || message.listMessage || message.interactiveMessage );
+if (requiresPatch) {
+message = {viewOnceMessage: {message: {messageContextInfo: {deviceListMetadataVersion: 2, deviceListMetadata: {}}, ...message}}};
+}
+return message;
+}

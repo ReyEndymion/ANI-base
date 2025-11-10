@@ -504,8 +504,8 @@ export async function participantsUpdate({ id, participants, action }, objs) {
  * Handle groups update
  * @param {import('baileys').BaileysEventMap<unknown>['groups.update']} groupsUpdate 
  */
-export async function groupsUpdate(groupsUpdate, objs) {
-    const {opts, db} = objs
+export async function groupsUpdate(groupsUpdate) {
+    const {opts, db} = this
     let text, id
     if (opts['self'])
         return
@@ -524,15 +524,15 @@ export async function groupsUpdate(groupsUpdate, objs) {
         return this.sendMessage(id, { text, mentions: this.parseMention(text) })
 }
 
-export async function callUpdate(callUpdate, objs) {
-    const {db} = objs
+export async function callUpdate(callUpdate) {
+    const {db} = this
     let isAnticall = db.data.settings[this.user.jid].antiCall
     if (!isAnticall) return
     for (let nk of callUpdate) {
     if (nk.isGroup == false) {
     if (nk.status == "offer") {
     await this.reply(nk.from, `Hola *@${nk.from.split('@')[0]}*, las ${nk.isVideo ? 'videollamadas' : 'llamadas'} no están permitidas, serás bloqueado.\n-\nSi accidentalmente llamaste póngase en contacto con mi creador para que te desbloquee!`, false, { mentions: [nk.from] })
-    await this.updateBlockStatus(nk.from, 'block')
+   await this.updateBlockStatus(nk.from, 'block')
     }
     }
     }

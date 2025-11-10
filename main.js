@@ -11,7 +11,7 @@ import { JSONFile } from 'lowdb/node';
 import store from './lib/store.js'
 import { loadDatabase } from './lib/database.js';
 import NodeCache from 'node-cache'
-import { reloadHandler } from './connections.js';
+import { reloadHandler, patchMessageBeforeSending } from './connections.js';
 protoType()
 const { DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, WAMessageKey, getHistoryMsg, isJidNewsletter } = await import('baileys')
 import { makeWASocket, protoType, serialize } from './lib/simple.js';
@@ -44,6 +44,7 @@ auth: {
 creds: state.creds,
 keys: makeCacheableSignalKeyStore(state.keys, logger),
 },
+patchMessageBeforeSending,
 browser: ['🌎ANI MX SCANS🌏','Opera','1.0.0']
 }
 const options = {
