@@ -445,6 +445,7 @@ export async function handler(chatUpdate, options) {
         this.sendMessage(m.chat, { react: { text: emot, key: m.key }})}
         function pickRandom(list) { return list[Math.floor(Math.random() * list.length)]}
     }
+    await templateResponse(m, {chatUpdate})
 }
 
 /**
