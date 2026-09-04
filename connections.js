@@ -4,11 +4,12 @@ const { Boom } = await import('@hapi/boom');
 const {delSessionError} = await import('./functions.js')
 const { CONNECTING } = await import('ws');
 const {default: chalk} = await import('chalk')
+const {DisconnectReason} = await import('baileys')
 const QR = await import('qrcode-terminal').then(m => m.default || m).catch(() => {
 conn.logger.error('El terminal de código QR no se agregó como dependencia');
 });
 var conn = this || beforeConn
-let {DisconnectReason, db, loadDatabase, timestamp, authFolder} = conn
+
 
 let {loggedOut, connectionLost, timedOut, multideviceMismatch, connectionClosed, connectionReplaced, badSession, restartRequired} = DisconnectReason
 let { connection, lastDisconnect, isNewLogin } = update
@@ -24,12 +25,13 @@ output = err?.output
 payload = output?.payload
 code = err?.output?.statusCode || payload?.statusCode;
 }
-if (code && code !== DisconnectReason.loggedOut && conn?.ws.readyState !== CONNECTING) {
-console.log(await reloadHandler(true).catch(console.error))
-}
+if (connection) {
+const {objs} = await import('./main.js')
+let {db, loadDatabase, timestamp, authFolder} = objs//
 if (connection == 'open') {
 if (Object.keys(db.data).length === 0) await loadDatabase(db)
 console.log(chalk.yellow('▣─────────────────────────────···\n│\n│❧ CONECTADO CORRECTAMENTE AL WHATSAPP ✅\n│\n▣─────────────────────────────···'))
+timestamp.connect = new Date
 } else {
 if (code === 401) {
     delSessionError(authFolder)
@@ -79,16 +81,19 @@ if (code === 515 && code === restartRequired) {
     await reloadHandler(true).catch(console.error)
     msg = conn.logger.info(`Conexion ${connection}... motivo: ${DisconnectReason[code]}`)
 }
-timestamp.connect = new Date
+if (code && code !== DisconnectReason.loggedOut && conn?.ws.readyState !== CONNECTING) {
+await reloadHandler(true).catch(console.error)
+}
 
+}
 }
 return msg
 }
 
 export async function reloadHandler(restatConn) {
-let handler = await import('./handler.js')
 var conn = this || beforeConn
-let {makeWASocket, connectionOptions, options, isInit, saveCreds, bind} = conn
+let {connectionOptions, options, isInit, saveCreds, objs, store} = conn
+let handler = await import('./handler.js')
 try {
 const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error)
 if (Object.keys(Handler || {}).length) handler = Handler
@@ -97,11 +102,18 @@ console.error(e)
 }
 beforeConn = conn
 if (restatConn) {
+options = beforeConn.options
+connectionOptions = beforeConn.connectionOptions
+saveCreds = beforeConn.saveCreds
+store = beforeConn.store
+Object.assign(beforeConn, objs)
+console.log('connections: ', beforeConn.db)
+let {makeWASocket} = await import('./lib/simple.js')
 var newconn = {}
 const oldChats = beforeConn.chats
-try { 
 isInit = false
-conn.ws.close() 
+try {
+//conn.end()
 conn.ev.removeAllListeners()
 } catch {
 conn.ev.off('messages.upsert', conn.handler)
@@ -112,19 +124,18 @@ conn.ev.off('call', conn.onCall)
 conn.ev.off('connection.update', conn.connectionUpdate)
 conn.ev.off('creds.update', conn.credsUpdate)
 } finally {
+conn.ws.close() 
 newconn = makeWASocket(connectionOptions, Object.assign(options, { chats: oldChats }))
-const safeKeys = Object.keys(newconn).filter(k => {
-  const desc = Object.getOwnPropertyDescriptor(beforeConn, k)
-  return !desc || desc.writable || desc.configurable
-})
+const safeKeys = Object.keys(newconn)
 for (const key of safeKeys) {
   try {
-    beforeConn[key] = newconn[key]
-  } catch {
-
+const desc = Object.getOwnPropertyDescriptor(conn, key);
+    if (!desc || desc.writable || desc.configurable || desc.set) {
+    conn[key] = newconn[key]
+}
+  } catch (e) {
    }
 }
-conn = beforeConn
 isInit = true
 }
 }
@@ -149,7 +160,7 @@ conn.sRevoke = '*SE HA ACTUALIZADO EL LINK DEL GRUPO!!*\n*LINK NUEVO:* @revoke'
   conn.connectionUpdate = connectionUpdate.bind(conn)
   conn.credsUpdate = saveCreds.bind(conn, true)
 
-bind.events(conn)
+store.events(conn)
 
 conn.ev.on('connection.update', conn.connectionUpdate)
 conn.ev.on('creds.update', conn.credsUpdate)

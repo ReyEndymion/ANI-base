@@ -1,33 +1,41 @@
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = true;
 import path, { join } from 'path'
 import {__filename, __dirname, _quickTest, filesInit, plugins, reload} from './functions.js'
-import {owner, raizPath, temp, pluginPath} from './config.js'
+import {owner, raizPath, temp, pluginPath, src} from './config.js'
 import { readdirSync, statSync, unlinkSync, existsSync, readFileSync, watch as fsWatch, rmSync, mkdirSync  } from 'fs';
 import {watch as Cwatch} from 'chokidar'
 import yargs from 'yargs';
 import P from 'pino';
 import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
-import store from './lib/store.js'
+import {bind} from './lib/store.js'
 import { loadDatabase } from './lib/database.js';
 import NodeCache from 'node-cache'
 import { reloadHandler, patchMessageBeforeSending } from './connections.js';
-protoType()
+import { opts } from './functions.js'; 
 const { DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, WAMessageKey, getHistoryMsg, isJidNewsletter } = await import('baileys')
 import { makeWASocket, protoType, serialize } from './lib/simple.js';
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
 const timestamp = { start: new Date }
-const opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
 const prefix = new RegExp('^[' + (opts['prefix'] || 'xzXZ/i!#$%+£¢€¥^°=¶∆×÷π√✓©®:;?&.\\-HhhHBb.aA').replace(/[|\\{}()[\]^$+*?.\-\^]/g, '\\$&') + ']')
 let db = new Low(/https?:\/\//.test(opts['db'] || '') ? new cloudDBAdapter(opts['db']) : new JSONFile(`${opts._[0] ? opts._[0] + '_' : ''}database.json`), {})
-
-const authFolder = path.join(raizPath, `ANIMXSCANS`)
+const folderName = `ANIMXSCANS`
+const authFolder = path.join(raizPath, folderName)
+const botDB = path.join(src, folderName)
+if (!existsSync(botDB)) mkdirSync(botDB, { recursive: true })
 if (!existsSync(temp)) mkdirSync(temp)
+const privsDir = path.join(botDB, 'privs');
+if (!existsSync(privsDir)) mkdirSync(privsDir, { recursive: true });
+const groupsDir = path.join(botDB, 'groups');
+if (!existsSync(groupsDir)) mkdirSync(groupsDir, { recursive: true });
+const dbGFAPFile = path.join(botDB, 'groupFetchAllParticipatingJson.json')
 const { state, saveState, saveCreds } = await useMultiFileAuthState(authFolder)
+protoType()
+serialize()
 const {version} = await fetchLatestBaileysVersion();
 const groupCache = new NodeCache()
 const logger = P({ level: 'silent'})
-const bind = store.bind()
+const store = bind({logger})
 const connectionOptions = {
 version,
 syncFullHistory: false,
@@ -36,8 +44,8 @@ connectTimeoutMs: 60_000,
 auth: state,
 logger,
 getMessage: async (key = WAMessageKey) => (
-bind.loadMessage(/** @type {string} */(key.remoteJid), key.id) ||
-bind.loadMessage(/** @type {string} */(key.id)) || {}
+store.loadMessage(/** @type {string} */(key.remoteJid), key.id) ||
+store.loadMessage(/** @type {string} */(key.id)) || {}
 ).message || { conversation: 'Please send messages again' },
 cachedGroupMetadata: async (jid) => groupCache.get(jid),
 auth: {
@@ -49,9 +57,13 @@ browser: ['🌎ANI MX SCANS🌏','Opera','1.0.0']
 }
 const options = {
 opts,
+authFolder,
+store,
+botDB,
+privsDir,
+groupsDir
 }
 let conn = makeWASocket(connectionOptions, options)
-serialize()
 conn.isInit = false
 if (!opts['test']) {
 if (db) setInterval(async () => {
@@ -69,9 +81,9 @@ process.on('unhandledRejection', err => {
 });
 let isInit = true;
 const pluginFolder = __dirname(`${pluginPath}/index`) 
-const objs = {opts, db, plugins, authFolder, prefix, loadDatabase, pluginFolder, makeWASocket, connectionOptions, options, isInit, timestamp, saveCreds, bind, DisconnectReason}
+const objs = {opts, db, plugins, authFolder, prefix, loadDatabase, pluginFolder, makeWASocket, connectionOptions, options, isInit, timestamp, saveCreds, store, DisconnectReason}
 Object.assign(conn, objs)
-await reloadHandler.call(conn, false)
+await reloadHandler.call(conn)
 if (conn.user) {
 _quickTest()
 await filesInit(conn, pluginFolder).then(_ => {
@@ -102,4 +114,15 @@ const dirname = path.relative(pluginFolder, dir)
 reload('unlinkDir', dirname, {conn, pluginFolder}) 
 })
 
+}
+
+export {
+DisconnectReason,
+db,
+connectionOptions,
+options,
+isInit, 
+saveCreds,
+objs,
+conn
 }

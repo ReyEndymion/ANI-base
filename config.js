@@ -11,18 +11,19 @@ export const owner = [
 
 export const prems = [] 
 export const packname = '(☞ﾟ∀ﾟ)☞'
-export const author = '★🌎ANI MX SCANS🌏★'
-export const wm = '★🌎ANI MX SCANS🌏★'
-export const igfg = '★🌎ANI MX SCANS🌏★'
+export const wm = 'ANI MX SCANS'
+export const igfg = `🌎${wm}🌏`
+export const author = `★${igfg}★`
 export const raizPath = __dirname(import.meta.url)
 export const temp = join(raizPath, 'tmp')
+export const src = join(raizPath, 'src') 
 export const pluginPath = join(raizPath, 'plugins')
 export const wait = '*⌛ _Cargando, aguarde un momento..._ ▬▬▬▭*'
 
-export const imagen1 = join(raizPath, 'Menu2.jpg')
-export const imagen2 = join(raizPath, 'src/nuevobot.jpg') 
-export const imagen3 = join(raizPath, 'src/Pre Bot Publi.png')
-export const imagen4 = join(raizPath, 'Menu.png')
+export const imagen1 = join(src, 'Menu2.jpg')
+export const imagen2 = join(src, 'nuevobot.jpg') 
+export const imagen3 = join(src, 'Pre Bot Publi.png')
+export const imagen4 = join(src, 'Menu.png')
 
 export const mods = [] 
 

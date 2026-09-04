@@ -3,6 +3,7 @@ import cfonts from 'cfonts';
 import { fileURLToPath, pathToFileURL } from 'url'
 import path, { join } from 'path'
 import { readdirSync, statSync, unlinkSync, existsSync, readFileSync, watch, rmSync  } from 'fs';
+import yargs from 'yargs';
 import { createRequire } from "module"; 
 import { spawn } from 'child_process';
 import syntaxerror from 'syntax-error';
@@ -61,6 +62,8 @@ setTimeout(() => resolve(), 500)
 }, 2000);
 })
 }
+
+export const opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
 
 export const __filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') { return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString() };
 
@@ -156,4 +159,28 @@ export async function delSessionError(pathFolder) {
 readdirSync(pathFolder).forEach(file => {
 unlinkSync(path.join(pathFolder, file), { recursive: true, force: true })})    
 process.send('reset')
+}
+
+export function mergeDefined(target, source) {
+    if (!target || !source) return target;
+
+    for (const [key, value] of Object.entries(source)) {
+        if (value === undefined || value === null) continue;
+
+        if (
+            typeof value === 'object' &&
+            !Array.isArray(value) &&
+            typeof target[key] === 'object' &&
+            target[key] !== null
+        ) {
+            Object.assign(target[key], value);
+            continue;
+        }
+
+        if (target[key] !== value) {
+            target[key] = value;
+        }
+    }
+
+    return target;
 }

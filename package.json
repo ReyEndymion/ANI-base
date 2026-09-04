@@ -1,6 +1,6 @@
 {
   "name": "ani_mx_scans-md",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Bot promocional del proyecto 🌎ANI MX SCANS🌏",
   "main": "index.js",
   "type": "module",
@@ -23,7 +23,7 @@
   },
   "license": "GPL-3.0-or-later",
   "dependencies": {
-    "baileys": "^7.0.0-rc.6",
+    "baileys": "^7.0.0-rc.14",
     "@vitalets/google-translate-api": "^9.2.1",
     "acrcloud": "^1.4.0",
     "awesome-phonenumber": "^7.5.0",

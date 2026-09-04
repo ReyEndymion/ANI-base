@@ -1,13 +1,17 @@
 import { smsg } from './lib/simple.js'
 import { format } from 'util'
+import { fileURLToPath } from 'url'
 import path, { join } from 'path'
 import {readFileSync, unwatchFile, watchFile } from 'fs'
 import chalk from 'chalk'
-import { mods, prems, author, owner, raizPath, imagen1, imagen2, imagen3, imagen4 } from './config.js'
+import { wm, mods, prems, author, owner, raizPath, imagen1, imagen2, imagen3, imagen4 } from './config.js'
 import { APIKeys } from './apis.js'
+import { templateResponse } from './connections.js'
+import { jidNormalizedUser } from 'baileys'
 /**
  * @type {import('baileys')}
  */
+
 const isNumber = x => typeof x === 'number' && !isNaN(x)
 const delay = ms => isNumber(ms) && new Promise(resolve => setTimeout(function () {
     clearTimeout(this)
@@ -19,10 +23,11 @@ const delay = ms => isNumber(ms) && new Promise(resolve => setTimeout(function (
  * @param {import('baileys').BaileysEventMap<unknown>['messages.upsert']} groupsUpdate 
  */
 export async function handler(chatUpdate, options) {
-
-    let {db, opts, plugins, prefix, loadDatabase, pluginFolder} = this
-    const consts = { mods, prems, author, owner, raizPath, imagen1, imagen2, imagen3, imagen4 }
-    if (Object.keys(db.data).length === 0) await loadDatabase()
+    const thisUserLid = jidNormalizedUser(this.user.lid)
+    let conn = this
+    let {db, opts, plugins, prefix, loadDatabase, pluginFolder} = conn
+    const consts = { wm, mods, prems, author, owner, raizPath, imagen1, imagen2, imagen3, imagen4 }
+    if (Object.keys(db.data).length === 0) await loadDatabase(db)
     this.msgqueque = this.msgqueque || []
     if (!chatUpdate)
         return
@@ -31,17 +36,6 @@ export async function handler(chatUpdate, options) {
     if (!m)
         return
 
-        const groupMetadata = (m.isGroup ? ((this.chats[m.chat] || {}).metadata || await this.groupMetadata(m.chat).catch(_ => null)) : {}) || {}
-        const participants = (m.isGroup ? groupMetadata.participants : []) || []
-        const user = (m.isGroup ? participants.find(u => this.decodeJid(u.id) === m.sender) : {}) || {} // User Data
-        const bot = (m.isGroup ? participants.find(u => this.decodeJid(u.id) == this.user.jid) : {}) || {} // Your Data
-        const isRAdmin = user?.admin == 'superadmin' || false
-        const isAdmin = isRAdmin || user?.admin == 'admin' || false // Is User Admin?
-        const isBotAdmin = bot?.admin || false // Are you Admin?
-        const isROwner = [this.decodeJid(this.user.id), ...owner.map(([number]) => number)].map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender)
-        const isOwner = isROwner || m.fromMe
-        const isMods = isOwner || mods.map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender)
-        const isPrems = isROwner || prems.map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender)
     try {
         m = smsg(this, m) || m
         if (!m)
@@ -49,11 +43,28 @@ export async function handler(chatUpdate, options) {
         m.conn = this
         m.exp = 0
         m.limit = false
+        const groupMetadata = (m.isGroup ? ((this.chats[m.chat] || {}).metadata || await this.groupMetadata(m.chat).catch(_ => null)) : {}) || {}
+        const participants = (m.isGroup ? groupMetadata.participants : []) || []
+        const user = (m.isGroup ? participants.find(u => this.decodeJid(u.id) === m.sender) : {}) || {} // User Data
+        const bot = (m.isGroup ? participants.find(u => this.decodeJid(u.id) == thisUserLid) : {}) || {} // Your Data
+        const isRAdmin = user?.admin == 'superadmin' || false
+        const isAdmin = isRAdmin || user?.admin == 'admin' || false // Is User Admin?
+        const isBotAdmin = bot?.admin || false // Are you Admin?
+        const isROwner = [thisUserLid, ...owner.map(([number]) => number)].map(v => this.resolveUser(v + '@s.whatsapp.net').lid).includes(m.sender)
+        const isOwner = isROwner || m.fromMe
+        const isMods = isOwner || mods.map(v => this.resolveUser(v + '@s.whatsapp.net').lid).includes(m.sender)
+        const isPrems = isROwner || prems.map(v => this.resolveUser(v + '@s.whatsapp.net').lid).includes(m.sender)
         try {
             // TODO: use loop to insert data instead of this
-            let user = db.data.users[m.sender]
+
+            if (typeof db.data[thisUserLid] !== 'object')
+                db.data[thisUserLid] = {}
+            let users = db.data[thisUserLid].users 
+            if (typeof users !== 'object')
+                db.data[thisUserLid].users = {}
+            let user = db.data[thisUserLid].users[m.sender]
             if (typeof user !== 'object')
-                db.data.users[m.sender] = {}
+                db.data[thisUserLid].users[m.sender] = {}
             if (user) {
                 if (!isNumber(user.exp)) user.exp = 0
                 if (!isNumber(user.limit)) user.limit = 10
@@ -75,7 +86,7 @@ export async function handler(chatUpdate, options) {
                 if (!isNumber(user.limit)) user.limit = 10
                 if (!isNumber(user.lastclaim)) user.lastclaim = 0
             } else
-                db.data.users[m.sender] = {
+                db.data[thisUserLid].users[m.sender] = {
                     exp: 0,
                     limit: 10,
                     lastclaim: 0,
@@ -96,9 +107,12 @@ export async function handler(chatUpdate, options) {
                     lastweekly: 0,
                     lastmonthly: 0,
                 }
-            let chat = db.data.chats[m.chat]
+            let chats = db.data[thisUserLid].chats
+            if (typeof chats !== 'object')
+                db.data[thisUserLid].chats = {}
+            let chat = db.data[thisUserLid].chats[m.chat]
             if (typeof chat !== 'object')
-                db.data.chats[m.chat] = {}
+                db.data[thisUserLid].chats[m.chat] = {}
             if (chat) {
                 if (!('isBanned' in chat)) chat.isBanned = false
                 if (!('welcome' in chat)) chat.welcome = true
@@ -121,7 +135,7 @@ export async function handler(chatUpdate, options) {
                 if (!('gRol' in chat)) chat.gruposRol = false
                 if (!isNumber(chat.expired)) chat.expired = 0
             } else
-                db.data.chats[m.chat] = {
+                db.data[thisUserLid].chats[m.chat] = {
                     isBanned: false,
                     welcome: true,
                     detect: true,
@@ -143,15 +157,15 @@ export async function handler(chatUpdate, options) {
                     gruposRol: false,
                     expired: 0,
                 }
-            let settings = db.data.settings[this.user.jid]
-            if (typeof settings !== 'object') db.data.settings[this.user.jid] = {}
+            let settings = db.data[thisUserLid].settings
+            if (typeof settings !== 'object') db.data[thisUserLid].settings = {}
             if (settings) {
                 if (!('self' in settings)) settings.self = false
                 if (!('autoread' in settings)) settings.autoread = false
                 if (!('restrict' in settings)) settings.restrict = false
                 if (!('antiCall' in settings)) settings.antiCall = false
                 if (!('antiPrivate' in settings)) settings.antiPrivate = false
-            } else db.data.settings[this.user.jid] = {
+            } else db.data[thisUserLid].settings[this.user.jid] = {
                 self: false,
                 autoread: false,
                 restrict: false,
@@ -188,12 +202,12 @@ export async function handler(chatUpdate, options) {
         m.exp += Math.ceil(Math.random() * 10)
 
         let usedPrefix
-        let chatsdb =  db.data && db.data.chats && db.data.chats
+        let chatsdb =  db.data[thisUserLid] && db.data[thisUserLid].chats && db.data[thisUserLid].chats
         let chatdb =  chatsdb[m.chat]
-        let usersdb = db.data && db.data.users && db.data.users
+        let usersdb = db.data[thisUserLid] && db.data[thisUserLid].users && db.data[thisUserLid].users
         let userdb = usersdb[m.sender]
-        let stats = db.data.stats
-        let settings = db.data.settings[this.user.jid]
+        let stats = db.data[thisUserLid].stats
+        let settings = db.data[thisUserLid].settings
         for (let name in plugins) {
             let plugin = plugins[name]
             if (!plugin) continue
@@ -424,6 +438,7 @@ export async function handler(chatUpdate, options) {
             }
         }
 
+    await templateResponse(m, {chatUpdate, conn})
     } catch (e) {
         console.error('ErrorHandler: ', e)
     } finally {
@@ -440,12 +455,11 @@ export async function handler(chatUpdate, options) {
         if (opts['autoread'])
             await this.readMessages([m.key])
         
-       if (!m.fromMem && m.text.match(/(Rey Endymion|@5215517489568|@5215533827255|ANIMXSCANS|ANI MX SCANS)/gi)) {
+       if (!m.fromMe && m.text.match(/(Rey Endymion|@5215517489568|@5215533827255|ANIMXSCANS|ANI MX SCANS)/gi)) {
         let emot = pickRandom(["🎃", "❤", "😘", "😍", "💕", "😎", "🙌", "⭐", "👻", "🔥"])
         this.sendMessage(m.chat, { react: { text: emot, key: m.key }})}
         function pickRandom(list) { return list[Math.floor(Math.random() * list.length)]}
     }
-    await templateResponse(m, {chatUpdate})
 }
 
 /**
@@ -526,7 +540,7 @@ export async function groupsUpdate(groupsUpdate) {
 
 export async function callUpdate(callUpdate) {
     const {db} = this
-    let isAnticall = db.data.settings[this.user.jid].antiCall
+    let isAnticall = db.data[thisUserLid].settings.antiCall
     if (!isAnticall) return
     for (let nk of callUpdate) {
     if (nk.isGroup == false) {
