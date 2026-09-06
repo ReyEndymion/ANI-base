@@ -466,7 +466,7 @@ export async function handler(chatUpdate, options) {
  * Handle groups participants update
  * @param {import('baileys').BaileysEventMap<unknown>['group-participants.update']} groupsUpdate 
  */
-export async function participantsUpdate({ id, participants, action }, objs) {
+export async function participantsUpdate({ id, participants, action }) {
     const thisUserLid = jidNormalizedUser(this.user.lid)
     const {opts, db} = this
     if (opts['self'])
