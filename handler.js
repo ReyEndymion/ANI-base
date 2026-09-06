@@ -303,7 +303,7 @@ export async function handler(chatUpdate, options) {
                 if (!isAccept)
                     continue
                 m.plugin = name
-                if (m.chat in db.data.chats || m.sender in db.data.users) {
+                if (m.chat in db.data[thisUserLid].chats || m.sender in db.data[thisUserLid].users) {
                     if (name != 'owner-unbanchat.js' && chatdb?.isBanned)
                         return // Except this
                     if (name != 'owner-unbanuser.js' && userdb?.banned)
@@ -353,7 +353,7 @@ export async function handler(chatUpdate, options) {
                     m.reply('Ngecit -_-') // Hehehe
                 else
                     m.exp += xp
-                if (!isPrems && plugin.limit && db.data.users[m.sender].limit < plugin.limit * 1) {
+                if (!isPrems && plugin.limit && db.data[thisUserLid].users[m.sender].limit < plugin.limit * 1) {
                     this.reply(m.chat, `*[! INFO!] SUS DIAMANTES SE HAN AGOTADO, PUEDE COMPRAR MÁS USANDO EL COMANDO ${usedPrefix}buy <cantidad>*`, m)
                     continue // Limit habis
                 }
@@ -467,6 +467,7 @@ export async function handler(chatUpdate, options) {
  * @param {import('baileys').BaileysEventMap<unknown>['group-participants.update']} groupsUpdate 
  */
 export async function participantsUpdate({ id, participants, action }, objs) {
+    const thisUserLid = jidNormalizedUser(this.user.lid)
     const {opts, db} = objs
     if (opts['self'])
         return
@@ -474,7 +475,7 @@ export async function participantsUpdate({ id, participants, action }, objs) {
         return
     if (db.data == null)
         await loadDatabase()
-    let chat = db.data.chats[id] || {}
+    let chat = db.data[thisUserLid].chats[id] || {}
     let text = ''
     switch (action) {
         case 'add':
@@ -519,6 +520,7 @@ export async function participantsUpdate({ id, participants, action }, objs) {
  * @param {import('baileys').BaileysEventMap<unknown>['groups.update']} groupsUpdate 
  */
 export async function groupsUpdate(groupsUpdate) {
+    const thisUserLid = jidNormalizedUser(this.user.lid)
     const {opts, db} = this
     let text, id
     if (opts['self'])
@@ -539,6 +541,7 @@ export async function groupsUpdate(groupsUpdate) {
 }
 
 export async function callUpdate(callUpdate) {
+    const thisUserLid = jidNormalizedUser(this.user.lid)
     const {db} = this
     let isAnticall = db.data[thisUserLid].settings.antiCall
     if (!isAnticall) return
@@ -553,6 +556,7 @@ export async function callUpdate(callUpdate) {
 }
 
 export async function deleteUpdate(message) {
+    const thisUserLid = jidNormalizedUser(this.user.lid)
     try {
         const { fromMe, id, participant } = message
         if (fromMe)
@@ -560,7 +564,7 @@ export async function deleteUpdate(message) {
         let msg = this.serializeM(this.loadMessage(id))
         if (!msg)
             return
-        let chat = db.data.chats[msg.chat] || {}
+        let chat = db.data[thisUserLid].chats[msg.chat] || {}
         if (chat.delete)
             return
         await this.reply(msg.chat, `
