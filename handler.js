@@ -404,9 +404,9 @@ export async function handler(chatUpdate, options) {
             }
         }
         if (m) {
-            if (m.sender && userdb) {
-                userdb.exp += m.exp
-                userdb.limit -= m.limit * 1
+            if (m.sender && user) {
+                user.exp += m.exp
+                user.limit -= m.limit * 1
             }
 
             let stat
