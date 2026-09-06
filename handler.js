@@ -468,7 +468,7 @@ export async function handler(chatUpdate, options) {
  */
 export async function participantsUpdate({ id, participants, action }, objs) {
     const thisUserLid = jidNormalizedUser(this.user.lid)
-    const {opts, db} = objs
+    const {opts, db} = this
     if (opts['self'])
         return
     if (this.isInit)
